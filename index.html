@@ -184,23 +184,6 @@ h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.15; margin: 22px 0 6px; l
   .colR .answerRow { margin-top: 0; }
 }
 
-/* finish */
-.doneCard { text-align: center; padding: 36px 16px 20px; }
-.stage { position: relative; width: 210px; height: 190px; margin: 0 auto 6px; }
-.bigstar { position: absolute; left: 25px; top: 15px; width: 160px; height: 160px; animation: pop .8s cubic-bezier(.2, 1.5, .4, 1) both; }
-.bigstar polygon { fill: var(--gold); stroke: var(--gold-deep); stroke-width: 4; stroke-linejoin: round; }
-.spark { position: absolute; width: 30px; height: 30px; animation: twinkle 1.8s ease-in-out infinite; }
-.spark polygon { fill: var(--gold); }
-.s1 { left: 0; top: 30px; animation-delay: .5s; }
-.s2 { right: 0; top: 6px; animation-delay: .9s; }
-.s3 { right: 14px; bottom: 6px; animation-delay: 1.3s; }
-@keyframes pop { 0% { transform: scale(.15) rotate(-50deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
-@keyframes twinkle { 0%, 100% { transform: scale(.5); opacity: .3; } 50% { transform: scale(1.1); opacity: 1; } }
-.doneCard h2 { font-size: 40px; margin: 6px 0; }
-.doneCard p { margin: 4px 0; font-size: 20px; }
-.doneCard .muted { color: var(--muted); font-size: 16px; }
-.doneBtns { display: flex; gap: 12px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
-.doneBtns .btn { min-width: 150px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -329,25 +312,6 @@ h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.15; margin: 22px 0 6px; l
     </div>
   </section>
 
-  <!-- 完成 -->
-  <section id="done" hidden>
-    <div class="doneCard">
-      <div class="stage" aria-hidden="true">
-        <svg class="spark s1" viewBox="0 0 40 40"><polygon id="sp1"/></svg>
-        <svg class="spark s2" viewBox="0 0 40 40"><polygon id="sp2"/></svg>
-        <svg class="spark s3" viewBox="0 0 40 40"><polygon id="sp3"/></svg>
-        <svg class="bigstar" viewBox="0 0 120 120"><polygon id="bigPoly"/></svg>
-      </div>
-      <h2 id="doneTitle">完成了！</h2>
-      <p id="doneMsg"></p>
-      <p class="muted" id="doneStats"></p>
-      <div class="doneBtns">
-        <button id="again" class="btn primary" type="button">再玩一次</button>
-        <button id="toHome" class="btn" type="button">返回首頁</button>
-      </div>
-    </div>
-  </section>
-
 </main>
 
 <script>
@@ -462,8 +426,7 @@ var TR = {
     negAria: '負號', delAria: '刪除', plusAria: '正號',
     correctFb: '答對了！　+1 分',
     correctAnswerLabel: '　正確答案：',
-    doneTitle: '完成了！',
-    again: '再玩一次', toHome: '返回首頁',
+    finishedBtn: '已完成 ✓',
     nlAria: '由 −10 至 +10 的數線',
     fillAria: '填空',
     langBtn: 'EN'
@@ -485,8 +448,7 @@ var TR = {
     negAria: 'Minus sign', delAria: 'Delete', plusAria: 'Plus sign',
     correctFb: 'Correct!　+1 point',
     correctAnswerLabel: ' Correct answer: ',
-    doneTitle: 'Well done!',
-    again: 'Play again', toHome: 'Back to home',
+    finishedBtn: 'Completed ✓',
     nlAria: 'Number line from −10 to +10',
     fillAria: 'Fill in blank',
     langBtn: '中文'
@@ -514,11 +476,8 @@ function tDetExpr(exprTxt, ans) { return '<small>' + exprTxt + ' = ' + fmt(ans) 
 function tWrongBracket(before) {
   return S.lang === 'zh' ? ('答錯了' + (before > 0 ? ' −1 分' : '') + '　請對照上面的步驟') : ('Wrong' + (before > 0 ? ' (−1 point)' : '') + '. Check the steps above.');
 }
-function tDoneMsg(t) {
-  return S.lang === 'zh' ? ('你已累積 ' + t + ' 分！') : ("You've reached " + t + ' points!');
-}
-function tDoneStats(total, right) {
-  return S.lang === 'zh' ? ('共作答 ' + total + ' 題，答對 ' + right + ' 題') : (total + ' question' + (total === 1 ? '' : 's') + ' answered, ' + right + ' correct');
+function tFinishedNote(t) {
+  return S.lang === 'zh' ? ('　已完成 ' + t + ' 分，可以截圖喇！') : ('. All done — reached ' + t + ' points. You can take a screenshot now!');
 }
 function tAskAria(a, op, b) {
   if (S.lang === 'zh') return spoken(a) + (op === '+' ? ' 加 ' : ' 減 ') + b + ' 等於多少';
@@ -549,9 +508,6 @@ function applyLang() {
   document.querySelector('.signkey[data-s="+"]').setAttribute('aria-label', d.plusAria);
   document.querySelector('.signkey[data-s="−"]').setAttribute('aria-label', d.negAria);
   Array.prototype.forEach.call(document.querySelectorAll('.blank'), function (el) { el.setAttribute('aria-label', d.fillAria); });
-  $('doneTitle').textContent = d.doneTitle;
-  $('again').textContent = d.again;
-  $('toHome').textContent = d.toHome;
   if (!$('game').hidden) {
     $('testTag').textContent = d.testTag;
     $('qno').textContent = tQno(S.level, S.qn);
@@ -559,11 +515,10 @@ function applyLang() {
       $('ok').textContent = d.confirm;
     } else if (S.phase === 'ok' || S.phase === 'bad') {
       $('ok').textContent = d.next;
+    } else if (S.phase === 'finished') {
+      $('ok').textContent = d.finishedBtn;
+      setFb('ok', d.correctFb + tFinishedNote(target()));
     }
-  }
-  if (!$('done').hidden) {
-    $('doneMsg').textContent = tDoneMsg(target());
-    $('doneStats').textContent = tDoneStats(S.total, S.right);
   }
 }
 try { if (/[?&]test=1(&|$)/.test(location.search)) S.test = true; } catch (e) {}
@@ -578,11 +533,9 @@ function starPts(cx, cy, R, r) {
   return p.join(' ');
 }
 $('goalPoly').setAttribute('points', starPts(20, 21, 17, 7));
-$('bigPoly').setAttribute('points', starPts(60, 63, 54, 22));
-['sp1', 'sp2', 'sp3'].forEach(function (id) { $(id).setAttribute('points', starPts(20, 21, 18, 7)); });
 
 function show(id) {
-  ['home', 'game', 'done'].forEach(function (x) { $(x).hidden = (x !== id); });
+  ['home', 'game'].forEach(function (x) { $(x).hidden = (x !== id); });
   window.scrollTo(0, 0);
 }
 function syncTest() {
@@ -733,6 +686,7 @@ function nextQ() {
   $('ans').classList.remove('ok', 'bad', 'pending');
   $('keypad').classList.remove('locked');
   $('ok').textContent = td().confirm;
+  $('ok').classList.remove('end');
   $('qcard').classList.toggle('steps', S.level >= 3);
   if (S.level <= 2) {
     S.ans = '';
@@ -857,9 +811,15 @@ function submitBracket() {
   });
   if (allOk) {
     $('ans').classList.add('ok');
-    setFb('ok', td().correctFb);
-    if (S.score >= target()) { S.phase = 'done'; S.timer = setTimeout(finish, 900); }
-    else { S.phase = 'ok'; S.timer = setTimeout(nextQ, 1300); }
+    if (S.score >= target()) {
+      S.phase = 'finished';
+      setFb('ok', td().correctFb + tFinishedNote(target()));
+      $('ok').textContent = td().finishedBtn;
+      $('ok').classList.add('end');
+    } else {
+      setFb('ok', td().correctFb);
+      S.phase = 'ok'; S.timer = setTimeout(nextQ, 1300);
+    }
   } else {
     S.phase = 'bad';
     $('ans').classList.add('bad');
@@ -882,9 +842,15 @@ function submit() {
   $('ok').textContent = td().next;
   if (ok) {
     $('ans').classList.add('ok');
-    setFb('ok', td().correctFb);
-    if (S.score >= target()) { S.phase = 'done'; S.timer = setTimeout(finish, 900); }
-    else { S.phase = 'ok'; S.timer = setTimeout(nextQ, 1100); }
+    if (S.score >= target()) {
+      S.phase = 'finished';
+      setFb('ok', td().correctFb + tFinishedNote(target()));
+      $('ok').textContent = td().finishedBtn;
+      $('ok').classList.add('end');
+    } else {
+      setFb('ok', td().correctFb);
+      S.phase = 'ok'; S.timer = setTimeout(nextQ, 1100);
+    }
   } else {
     S.phase = 'bad';
     $('ans').classList.add('bad');
@@ -897,15 +863,6 @@ function submit() {
 function onOk() {
   if (S.phase === 'ask') { if (S.level <= 2) submit(); else submitBracket(); }
   else if (S.phase === 'ok' || S.phase === 'bad') nextQ();
-  else if (S.phase === 'done') finish();
-}
-
-function finish() {
-  clearTimeout(S.timer);
-  S.phase = 'idle';
-  $('doneMsg').textContent = tDoneMsg(target());
-  $('doneStats').textContent = tDoneStats(S.total, S.right);
-  show('done');
 }
 
 function press(k) {
@@ -943,8 +900,6 @@ $('work').addEventListener('click', function (e) {
 });
 $('ok').addEventListener('click', onOk);
 $('backBtn').addEventListener('click', function () { clearTimeout(S.timer); S.phase = 'idle'; show('home'); });
-$('toHome').addEventListener('click', function () { show('home'); });
-$('again').addEventListener('click', function () { startGame(S.level); });
 $('testToggle').addEventListener('click', function () { S.test = !S.test; syncTest(); });
 $('langToggle').addEventListener('click', function () { S.lang = S.lang === 'zh' ? 'en' : 'zh'; applyLang(); });
 
