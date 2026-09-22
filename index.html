@@ -93,7 +93,14 @@ button {
   user-select: none;
 }
 button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.app { max-width: 760px; margin: 0 auto; padding: 12px 14px 28px; }
+.app { max-width: 760px; margin: 0 auto; padding: 64px 14px 28px; }
+.langBtn {
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 14px; z-index: 40;
+  min-height: 34px; padding: 0 15px; border-radius: 999px;
+  background: var(--card); border: 1.5px solid var(--rule); color: var(--ink);
+  font-weight: 700; font-size: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.10);
+}
+.langBtn:active { background: var(--key); }
 .num { font-family: var(--num); }
 
 /* generic buttons */
@@ -242,16 +249,17 @@ h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.15; margin: 22px 0 6px; l
 </style>
 </head>
 <body>
+<button id="langToggle" class="langBtn" type="button">EN</button>
 <main class="app">
 
   <!-- 首頁 -->
   <section id="home">
-    <h1>有向數加減練習</h1>
-    <p class="lead">選擇程度，開始練習。</p>
+    <h1 id="pageTitle">有向數加減練習</h1>
+    <p class="lead" id="leadText">選擇程度，開始練習。</p>
     <div class="levels">
       <button class="level" data-level="1" type="button">
-        <span class="name">程度一</span>
-        <span class="desc">有數線幫忙，一步一步數腳步</span>
+        <span class="name" id="lv1Name">程度一</span>
+        <span class="desc" id="lv1Desc">有數線幫忙，一步一步數腳步</span>
         <span class="pv" aria-hidden="true">
           <svg viewBox="0 0 240 58" width="100%" height="58">
             <line x1="6" y1="42" x2="234" y2="42" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>
@@ -268,13 +276,13 @@ h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.15; margin: 22px 0 6px; l
         </span>
       </button>
       <button class="level" data-level="2" type="button">
-        <span class="name">程度二</span>
-        <span class="desc">沒有數線，靠自己計算</span>
+        <span class="name" id="lv2Name">程度二</span>
+        <span class="desc" id="lv2Desc">沒有數線，靠自己計算</span>
         <span class="pv pv2 num" aria-hidden="true">−3 − 4 = ?</span>
       </button>
       <button class="level" data-level="3" type="button">
-        <span class="name">程度三</span>
-        <span class="desc">有數線幫忙，拆括號逐步作答</span>
+        <span class="name" id="lv3Name">程度三</span>
+        <span class="desc" id="lv3Desc">有數線幫忙，拆括號逐步作答</span>
         <span class="pv" aria-hidden="true">
           <svg viewBox="0 0 240 58" width="100%" height="58">
             <line x1="6" y1="42" x2="234" y2="42" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>
@@ -291,8 +299,8 @@ h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.15; margin: 22px 0 6px; l
         </span>
       </button>
       <button class="level" data-level="4" type="button">
-        <span class="name">程度四</span>
-        <span class="desc">沒有數線，拆括號逐步作答</span>
+        <span class="name" id="lv4Name">程度四</span>
+        <span class="desc" id="lv4Desc">沒有數線，拆括號逐步作答</span>
         <span class="pv pv2 num" aria-hidden="true">(−6) − (+11) = ?</span>
       </button>
     </div>
@@ -303,7 +311,7 @@ h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.15; margin: 22px 0 6px; l
   <section id="game" hidden>
     <div class="scorebar">
       <button id="backBtn" class="btn small" type="button">← 首頁</button>
-      <div class="scoretext">分數 <b id="score">0</b> / <span id="target">50</span></div>
+      <div class="scoretext"><span id="scoreLabel">分數</span> <b id="score">0</b> / <span id="target">50</span></div>
       <div class="track"><div class="fill" id="fill"></div></div>
       <svg class="goalstar" id="goalStar" viewBox="0 0 40 40" aria-hidden="true"><polygon id="goalPoly"/></svg>
     </div>
@@ -372,7 +380,7 @@ h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.15; margin: 22px 0 6px; l
         <svg class="spark s3" viewBox="0 0 40 40"><polygon id="sp3"/></svg>
         <svg class="bigstar" viewBox="0 0 120 120"><polygon id="bigPoly"/></svg>
       </div>
-      <h2>完成了！</h2>
+      <h2 id="doneTitle">完成了！</h2>
       <p id="doneMsg"></p>
       <p class="muted" id="doneStats"></p>
       <div class="doneBtns">
@@ -475,7 +483,131 @@ var $ = function (id) { return document.getElementById(id); };
 var reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, reduce ? 0 : ms); }); };
 
-var S = { level: 1, test: false, score: 0, total: 0, right: 0, pool: [], q: null, ans: '', phase: 'idle', qn: 0, timer: null, blanks: null, active: 0 };
+var S = { level: 1, test: false, score: 0, total: 0, right: 0, pool: [], q: null, ans: '', phase: 'idle', qn: 0, timer: null, blanks: null, active: 0, lang: 'zh' };
+
+/* ---------- 語言 翻譯 ---------- */
+var TR = {
+  zh: {
+    title: '有向數加減練習',
+    lead: '選擇程度，開始練習。',
+    lvNames: ['程度一', '程度二', '程度三', '程度四'],
+    lvDesc: ['有數線幫忙，一步一步數腳步', '沒有數線，靠自己計算', '有數線幫忙，拆括號逐步作答', '沒有數線，拆括號逐步作答'],
+    testOff: '關',
+    back: '← 首頁',
+    score: '分數',
+    testTag: '測試模式',
+    nlRule: '＋ 向右走　－ 向左走',
+    moveLeft: '◀ 向左', moveRight: '向右 ▶',
+    moveLeftAria: '向左一步', moveRightAria: '向右一步',
+    reset: '重來',
+    confirm: '確定', next: '下一題 ▶',
+    negAria: '負號', delAria: '刪除', plusAria: '正號',
+    correctFb: '答對了！　+1 分',
+    correctAnswerLabel: '　正確答案：',
+    doneTitle: '完成了！',
+    again: '再玩一次', toHome: '返回首頁',
+    nlAria: '由 −10 至 +10 的數線',
+    fillAria: '填空',
+    langBtn: 'EN'
+  },
+  en: {
+    title: 'Directed Numbers Practice',
+    lead: 'Choose a level to start practising.',
+    lvNames: ['Level 1', 'Level 2', 'Level 3', 'Level 4'],
+    lvDesc: ['Number line included — count the steps', 'No number line — work it out yourself', 'Number line included — expand brackets step by step', 'No number line — expand brackets step by step'],
+    testOff: 'Off',
+    back: '← Home',
+    score: 'Score',
+    testTag: 'Test mode',
+    nlRule: '+ move right　− move left',
+    moveLeft: '◀ Left', moveRight: 'Right ▶',
+    moveLeftAria: 'Move left one step', moveRightAria: 'Move right one step',
+    reset: 'Reset',
+    confirm: 'Confirm', next: 'Next ▶',
+    negAria: 'Minus sign', delAria: 'Delete', plusAria: 'Plus sign',
+    correctFb: 'Correct!　+1 point',
+    correctAnswerLabel: ' Correct answer: ',
+    doneTitle: 'Well done!',
+    again: 'Play again', toHome: 'Back to home',
+    nlAria: 'Number line from −10 to +10',
+    fillAria: 'Fill in blank',
+    langBtn: '中文'
+  }
+};
+function td() { return TR[S.lang]; }
+function tTestToggleLabel() {
+  if (S.lang === 'zh') return '教師測試模式：' + (S.test ? ('開（每程度只需累積 ' + TEST_TARGET + ' 分）') : '關');
+  return 'Teacher test mode: ' + (S.test ? ('On (only ' + TEST_TARGET + ' points needed per level)') : 'Off');
+}
+function tQno(lv, n) {
+  return S.lang === 'zh' ? (td().lvNames[lv - 1] + '　第 ' + n + ' 題') : (td().lvNames[lv - 1] + ' · Question ' + n);
+}
+function tSteps(n) {
+  return S.lang === 'zh' ? ('已走 ' + n + ' 步') : (n + ' step' + (n === 1 ? '' : 's') + ' taken');
+}
+function tWrongSimple(before) {
+  return S.lang === 'zh' ? ('答錯了' + (before > 0 ? ' −1 分' : '')) : ('Wrong' + (before > 0 ? ' (−1 point).' : '.'));
+}
+function tDetNL(a, dir, b, ans) {
+  if (S.lang === 'zh') return '<small>從 ' + fmt(a) + ' 向' + (dir === '+' ? '右' : '左') + '走 ' + b + ' 步，到達 ' + fmt(ans) + '</small>';
+  return '<small>From ' + fmt(a) + ', move ' + (dir === '+' ? 'right' : 'left') + ' ' + b + ' step' + (b === 1 ? '' : 's') + ' to reach ' + fmt(ans) + '</small>';
+}
+function tDetExpr(exprTxt, ans) { return '<small>' + exprTxt + ' = ' + fmt(ans) + '</small>'; }
+function tWrongBracket(before) {
+  return S.lang === 'zh' ? ('答錯了' + (before > 0 ? ' −1 分' : '') + '　請對照上面的步驟') : ('Wrong' + (before > 0 ? ' (−1 point)' : '') + '. Check the steps above.');
+}
+function tDoneMsg(t) {
+  return S.lang === 'zh' ? ('你已累積 ' + t + ' 分！') : ("You've reached " + t + ' points!');
+}
+function tDoneStats(total, right) {
+  return S.lang === 'zh' ? ('共作答 ' + total + ' 題，答對 ' + right + ' 題') : (total + ' question' + (total === 1 ? '' : 's') + ' answered, ' + right + ' correct');
+}
+function tAskAria(a, op, b) {
+  if (S.lang === 'zh') return spoken(a) + (op === '+' ? ' 加 ' : ' 減 ') + b + ' 等於多少';
+  return fmt(a) + (op === '+' ? ' plus ' : ' minus ') + b + ' equals what';
+}
+function applyLang() {
+  var d = td();
+  document.documentElement.lang = (S.lang === 'zh') ? 'zh-Hant' : 'en';
+  document.title = d.title;
+  $('langToggle').textContent = d.langBtn;
+  $('pageTitle').textContent = d.title;
+  $('leadText').textContent = d.lead;
+  for (var i = 1; i <= 4; i++) {
+    $('lv' + i + 'Name').textContent = d.lvNames[i - 1];
+    $('lv' + i + 'Desc').textContent = d.lvDesc[i - 1];
+  }
+  syncTest();
+  $('backBtn').textContent = d.back;
+  $('nlRule').textContent = d.nlRule;
+  $('goL').textContent = d.moveLeft; $('goL').setAttribute('aria-label', d.moveLeftAria);
+  $('goR').textContent = d.moveRight; $('goR').setAttribute('aria-label', d.moveRightAria);
+  $('resetNL').textContent = d.reset;
+  $('scoreLabel').textContent = d.score;
+  $('stepInfo').textContent = tSteps(NL.steps);
+  $('nl').setAttribute('aria-label', d.nlAria);
+  document.querySelector('.key[data-k="neg"]').setAttribute('aria-label', d.negAria);
+  document.querySelector('.key[data-k="del"]').setAttribute('aria-label', d.delAria);
+  document.querySelector('.signkey[data-s="+"]').setAttribute('aria-label', d.plusAria);
+  document.querySelector('.signkey[data-s="−"]').setAttribute('aria-label', d.negAria);
+  Array.prototype.forEach.call(document.querySelectorAll('.blank'), function (el) { el.setAttribute('aria-label', d.fillAria); });
+  $('doneTitle').textContent = d.doneTitle;
+  $('again').textContent = d.again;
+  $('toHome').textContent = d.toHome;
+  if (!$('game').hidden) {
+    $('testTag').textContent = d.testTag;
+    $('qno').textContent = tQno(S.level, S.qn);
+    if (S.phase === 'ask' || S.phase === 'idle') {
+      $('ok').textContent = d.confirm;
+    } else if (S.phase === 'ok' || S.phase === 'bad') {
+      $('ok').textContent = d.next;
+    }
+  }
+  if (!$('done').hidden) {
+    $('doneMsg').textContent = tDoneMsg(target());
+    $('doneStats').textContent = tDoneStats(S.total, S.right);
+  }
+}
 try { if (/[?&]test=1(&|$)/.test(location.search)) S.test = true; } catch (e) {}
 function target() { return S.test ? TEST_TARGET : TARGET; }
 
@@ -496,7 +628,7 @@ function show(id) {
   window.scrollTo(0, 0);
 }
 function syncTest() {
-  $('testToggle').textContent = '教師測試模式：' + (S.test ? '開（每程度只需累積 ' + TEST_TARGET + ' 分）' : '關');
+  $('testToggle').textContent = tTestToggleLabel();
 }
 
 /* ---------- 數線 ---------- */
@@ -550,7 +682,7 @@ NL.draw = function () {
     '<rect class="hl" x="' + (xOf(NL.hl) - 19) + '" y="' + (b + 11) + '" width="38" height="28" rx="8"/>';
   $('nl-marker').innerHTML = markerHTML();
   $('mk').setAttribute('transform', 'translate(' + xOf(NL.pos) + ',' + standY() + ')');
-  $('stepInfo').textContent = '已走 ' + NL.steps + ' 步';
+  $('stepInfo').textContent = tSteps(NL.steps);
   $('goL').classList.toggle('end', NL.pos <= MIN);
   $('goR').classList.toggle('end', NL.pos >= MAX);
 };
@@ -638,11 +770,11 @@ function nextQ() {
   clearTimeout(S.timer);
   if (!S.pool.length) S.pool = shuffle(poolFor(S.level));
   S.q = S.pool.pop(); S.qn++; S.phase = 'ask';
-  $('qno').textContent = LEVEL_NAME[S.level] + '　第 ' + S.qn + ' 題';
+  $('qno').textContent = tQno(S.level, S.qn);
   setFb('', '');
   $('ans').classList.remove('ok', 'bad', 'pending');
   $('keypad').classList.remove('locked');
-  $('ok').textContent = '確定';
+  $('ok').textContent = td().confirm;
   $('qcard').classList.toggle('steps', S.level >= 3);
   if (S.level <= 2) {
     S.ans = '';
@@ -650,7 +782,7 @@ function nextQ() {
     $('signPad').hidden = true;
     var ex = $('expr');
     ex.textContent = exprText(S.q) + ' = ?';
-    ex.setAttribute('aria-label', spoken(S.q.a) + (S.q.op === '+' ? ' 加 ' : ' 減 ') + S.q.b + ' 等於多少');
+    ex.setAttribute('aria-label', tAskAria(S.q.a, S.q.op, S.q.b));
     renderAns();
     if (S.level === 1) NL.init(S.q.a);
   } else {
@@ -663,6 +795,7 @@ function startGame(level) {
   clearTimeout(S.timer);
   S.level = level; S.score = 0; S.total = 0; S.right = 0; S.qn = 0; S.pool = shuffle(poolFor(level)); S.phase = 'idle';
   $('testTag').hidden = !S.test;
+  $('testTag').textContent = td().testTag;
   var showNL = (level === 1 || level === 3);
   $('nlBlock').hidden = !showNL;
   $('nlRule').hidden = !showNL;
@@ -673,7 +806,7 @@ function startGame(level) {
 
 /* ---------- 程度三/四：拆括號多空格 ---------- */
 function blankHTML(i) {
-  return '<button type="button" class="blank pending" id="bl' + i + '" data-i="' + i + '" aria-label="填空">?</button>';
+  return '<button type="button" class="blank pending" id="bl' + i + '" data-i="' + i + '" aria-label="' + td().fillAria + '">?</button>';
 }
 function renderBracketQ(q) {
   var blanks = [{ key: 'op1', type: 'sign' }];
@@ -757,7 +890,7 @@ function submitBracket() {
   $('keypad').classList.add('locked');
   $('signPad').hidden = true;
   $('ans').classList.remove('pending');
-  $('ok').textContent = '下一題 ▶';
+  $('ok').textContent = td().next;
   S.blanks.forEach(function (b) {
     var el = $('bl' + b.i);
     el.textContent = b.type === 'sign' ? q[b.key] : fmt(q[b.key]);
@@ -766,13 +899,13 @@ function submitBracket() {
   });
   if (allOk) {
     $('ans').classList.add('ok');
-    setFb('ok', '答對了！　+1 分');
+    setFb('ok', td().correctFb);
     if (S.score >= target()) { S.phase = 'done'; S.timer = setTimeout(finish, 900); }
     else { S.phase = 'ok'; S.timer = setTimeout(nextQ, 1300); }
   } else {
     S.phase = 'bad';
     $('ans').classList.add('bad');
-    setFb('bad', '答錯了' + (before > 0 ? ' \u22121 分' : '') + '　請對照上面嘅步驟');
+    setFb('bad', tWrongBracket(before));
     if (S.level === 3) replay({ a: q.a, op: q.op1, b: q.bAbs, ans: q.ans });
   }
 }
@@ -788,19 +921,17 @@ function submit() {
   S.score = scoreAfter(S.score, ok);
   updateScore(true);
   $('keypad').classList.add('locked');
-  $('ok').textContent = '下一題 ▶';
+  $('ok').textContent = td().next;
   if (ok) {
     $('ans').classList.add('ok');
-    setFb('ok', '答對了！　+1 分');
+    setFb('ok', td().correctFb);
     if (S.score >= target()) { S.phase = 'done'; S.timer = setTimeout(finish, 900); }
     else { S.phase = 'ok'; S.timer = setTimeout(nextQ, 1100); }
   } else {
     S.phase = 'bad';
     $('ans').classList.add('bad');
-    var det = S.level === 1
-      ? '<small>從 ' + fmt(q.a) + ' 向' + (q.op === '+' ? '右' : '左') + '走 ' + q.b + ' 步，到達 ' + fmt(q.ans) + '</small>'
-      : '<small>' + exprText(q) + ' = ' + fmt(q.ans) + '</small>';
-    setFb('bad', '答錯了' + (before > 0 ? ' \u22121 分' : '') + '　正確答案：' + fmt(q.ans) + det);
+    var det = S.level === 1 ? tDetNL(q.a, q.op, q.b, q.ans) : tDetExpr(exprText(q), q.ans);
+    setFb('bad', tWrongSimple(before) + td().correctAnswerLabel + fmt(q.ans) + det);
     if (S.level === 1) replay(q);
   }
 }
@@ -814,8 +945,8 @@ function onOk() {
 function finish() {
   clearTimeout(S.timer);
   S.phase = 'idle';
-  $('doneMsg').textContent = '你已累積 ' + target() + ' 分！';
-  $('doneStats').textContent = '共作答 ' + S.total + ' 題，答對 ' + S.right + ' 題';
+  $('doneMsg').textContent = tDoneMsg(target());
+  $('doneStats').textContent = tDoneStats(S.total, S.right);
   show('done');
 }
 
@@ -857,6 +988,7 @@ $('backBtn').addEventListener('click', function () { clearTimeout(S.timer); S.ph
 $('toHome').addEventListener('click', function () { show('home'); });
 $('again').addEventListener('click', function () { startGame(S.level); });
 $('testToggle').addEventListener('click', function () { S.test = !S.test; syncTest(); });
+$('langToggle').addEventListener('click', function () { S.lang = S.lang === 'zh' ? 'en' : 'zh'; applyLang(); });
 
 document.addEventListener('keydown', function (e) {
   if ($('game').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -878,8 +1010,8 @@ window.addEventListener('resize', function () {
   rz = setTimeout(function () { if (!$('game').hidden && (S.level === 1 || S.level === 3)) { NL.layout(); NL.follow(true); } }, 120);
 });
 
-syncTest();
-window.__qa = { S: S, NL: NL, allQuestions: allQuestions, allBracketQuestions: allBracketQuestions, deriveBracket: deriveBracket, pressKey: pressKey };
+applyLang();
+window.__qa = { S: S, NL: NL, allQuestions: allQuestions, allBracketQuestions: allBracketQuestions, deriveBracket: deriveBracket, pressKey: pressKey, applyLang: applyLang, TR: TR };
 })();
 </script>
 </body>
